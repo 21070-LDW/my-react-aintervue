@@ -497,17 +497,25 @@ const InterviewChat = () => {
             </div>
             
             <div className="form-group">
-              <label htmlFor="maxQuestions">질문 개수 *</label>
-              <select
-                id="maxQuestions"
-                value={maxQuestions}
-                onChange={(e) => setMaxQuestions(Number(e.target.value))}
-              >
-                <option value={5}>5개 (빠른 면접)</option>
-                <option value={10}>10개 (표준 면접)</option>
-                <option value={15}>15개 (심화 면접)</option>
-                <option value={20}>20개 (전문 면접)</option>
-              </select>
+              <label>질문 개수 *</label>
+              <div className="question-options">
+                {[
+                  { value: 5, label: '5개', desc: '빠른 면접', icon: '⚡' },
+                  { value: 10, label: '10개', desc: '표준 면접', icon: '📝' },
+                  { value: 15, label: '15개', desc: '심화 면접', icon: '📚' },
+                  { value: 20, label: '20개', desc: '전문 면접', icon: '🎯' }
+                ].map((option) => (
+                  <div
+                    key={option.value}
+                    className={`question-option-card ${maxQuestions === option.value ? 'selected' : ''}`}
+                    onClick={() => setMaxQuestions(option.value)}
+                  >
+                    <span className="option-icon">{option.icon}</span>
+                    <span className="option-label">{option.label}</span>
+                    <span className="option-desc">{option.desc}</span>
+                  </div>
+                ))}
+              </div>
               <small>받고 싶은 질문의 총 개수를 선택하세요</small>
             </div>
           </div>

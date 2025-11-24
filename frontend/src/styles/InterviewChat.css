@@ -642,6 +642,93 @@
   font-size: 12px;
 }
 
+/* 질문 개수 선택 카드 */
+.question-options {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.question-option-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  background-color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.question-option-card:hover {
+  border-color: #667eea;
+  background-color: #f8f9ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.question-option-card.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+}
+
+.question-option-card.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.question-option-card {
+  position: relative;
+}
+
+.option-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.option-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #888;
+  font-weight: 500;
+}
+
+.question-option-card.selected .option-label {
+  color: #667eea;
+}
+
+.question-option-card.selected .option-desc {
+  color: #764ba2;
+}
+
+/* 입력 필드 호버 효과 강화 */
+.form-group input:hover {
+  border-color: #b0b0b0;
+}
+
 .start-button {
   width: 100%;
   padding: 16px;
