@@ -17,6 +17,7 @@ const InterviewChat = () => {
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [userName, setUserName] = useState('');
   const [maxQuestions, setMaxQuestions] = useState(10);
+  const [interviewType, setInterviewType] = useState('technical');
   const [isPaused, setIsPaused] = useState(false);
   
   // 타이머 상태
@@ -439,6 +440,7 @@ const InterviewChat = () => {
     setUploadStatus('');
     setUserName('');
     setMaxQuestions(10);
+    setInterviewType('technical');
     setIsPaused(false);
     setCurrentQuestionTime(0);
     setQuestionTimes([]);
@@ -495,7 +497,30 @@ const InterviewChat = () => {
               />
               <small>면접관이 이름으로 호칭합니다</small>
             </div>
-            
+
+            <div className="form-group">
+              <label>면접 유형 *</label>
+              <div className="interview-type-options">
+                {[
+                  { value: 'technical', label: '기술 면접', desc: '개발 역량 평가', icon: '💻' },
+                  { value: 'behavioral', label: '인성 면접', desc: '성격 및 태도 평가', icon: '🤝' },
+                  { value: 'project', label: '프로젝트 면접', desc: '경험 기반 질문', icon: '📂' },
+                  { value: 'comprehensive', label: '종합 면접', desc: '기술 + 인성', icon: '🎯' }
+                ].map((option) => (
+                  <div
+                    key={option.value}
+                    className={`interview-type-card ${interviewType === option.value ? 'selected' : ''}`}
+                    onClick={() => setInterviewType(option.value)}
+                  >
+                    <span className="option-icon">{option.icon}</span>
+                    <span className="option-label">{option.label}</span>
+                    <span className="option-desc">{option.desc}</span>
+                  </div>
+                ))}
+              </div>
+              <small>원하는 면접 유형을 선택하세요</small>
+            </div>
+
             <div className="form-group">
               <label>질문 개수 *</label>
               <div className="question-options">
