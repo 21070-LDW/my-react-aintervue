@@ -283,9 +283,10 @@ const InterviewChat = () => {
   const uploadVideoToServer = async (blob) => {
     try {
       setUploadStatus('업로드 중...');
-      
+
       const formData = new FormData();
-      const filename = `interview_${new Date().toISOString().slice(0, 10)}.webm`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `interview_${timestamp}.webm`;
       formData.append('video', blob, filename);
 
       const response = await fetch('http://localhost:3001/api/upload-video', {
@@ -297,16 +298,14 @@ const InterviewChat = () => {
 
       const data = await response.json();
       console.log('✅ 서버에 저장됨:', data.filename);
+      console.log('📁 저장 경로:', data.path);
       setServerVideoUrl(data.url);
-      setUploadStatus('저장 완료!');
-      
-      setTimeout(() => setUploadStatus(''), 3000);
-      
+      setUploadStatus('서버 저장 완료!');
+
       return data;
     } catch (error) {
       console.error('업로드 오류:', error);
-      setUploadStatus('저장 실패');
-      setTimeout(() => setUploadStatus(''), 3000);
+      setUploadStatus('서버 저장 실패 - 로컬 영상은 다운로드 가능');
       return null;
     }
   };
@@ -698,31 +697,45 @@ const InterviewChat = () => {
           </div>
         </div>
 
-        {recordedVideoUrl && (
-          <div className="feedback-section">
-            <h3 className="section-title">🎥 면접 녹화 영상</h3>
-            <video src={recordedVideoUrl} controls className="recorded-video" />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={downloadRecording} className="download-button">
-                📥 로컬 다운로드
-              </button>
-              {serverVideoUrl && (
-                <button 
-                  onClick={() => window.open(serverVideoUrl, '_blank')} 
-                  className="download-button"
-                  style={{ backgroundColor: '#28a745' }}
-                >
-                  🌐 서버에서 보기
+        <div className="feedback-section">
+          <h3 className="section-title">🎥 면접 녹화 영상</h3>
+          {recordedVideoUrl ? (
+            <div className="video-section">
+              <video src={recordedVideoUrl} controls className="recorded-video" />
+              <div className="video-info">
+                {uploadStatus && (
+                  <div className={`upload-status-badge ${uploadStatus.includes('완료') ? 'success' : uploadStatus.includes('실패') ? 'error' : 'loading'}`}>
+                    {uploadStatus.includes('완료') ? '✅' : uploadStatus.includes('실패') ? '❌' : '⏳'} {uploadStatus}
+                  </div>
+                )}
+                {serverVideoUrl && (
+                  <p className="server-path">
+                    📁 서버 저장 경로: <code>{serverVideoUrl.split('/').pop()}</code>
+                  </p>
+                )}
+              </div>
+              <div className="video-buttons">
+                <button onClick={downloadRecording} className="download-button">
+                  📥 로컬 다운로드
                 </button>
-              )}
+                {serverVideoUrl && (
+                  <button
+                    onClick={() => window.open(serverVideoUrl, '_blank')}
+                    className="download-button server"
+                  >
+                    🌐 서버에서 보기
+                  </button>
+                )}
+              </div>
             </div>
-            {serverVideoUrl && (
-              <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-                ✅ 서버에 저장됨: {serverVideoUrl.split('/').pop()}
-              </p>
-            )}
-          </div>
-        )}
+          ) : (
+            <div className="no-video-message">
+              <div className="no-video-icon">📹</div>
+              <p>녹화된 영상이 없습니다</p>
+              <small>다음 면접에서는 웹캠을 켜고 🔴 녹화 버튼을 눌러 면접 영상을 저장해보세요!</small>
+            </div>
+          )}
+        </div>
 
         <button onClick={restartInterview} className="restart-button">
           🔄 새로운 면접 시작하기
