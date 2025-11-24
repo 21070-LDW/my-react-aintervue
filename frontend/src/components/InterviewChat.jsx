@@ -2,6 +2,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/InterviewChat.css';
 
+// 면접 유형 옵션
+const INTERVIEW_TYPES = {
+  personality: { label: '인성면접', icon: '💬', description: '성격, 가치관, 협업 능력 등을 평가합니다' },
+  technical: { label: '기술면접', icon: '💻', description: '직무 관련 전문 지식과 문제 해결 능력을 평가합니다' },
+  english: { label: '영어면접', icon: '🌍', description: '영어 의사소통 능력을 평가합니다' },
+  executive: { label: '임원면접', icon: '👔', description: '리더십, 비전, 조직 적합성을 심층 평가합니다' }
+};
+
+// 직무 옵션
+const JOB_POSITIONS = {
+  general: { label: '일반', icon: '📋', description: '일반적인 면접 질문' },
+  developer: { label: '개발자', icon: '👨‍💻', description: '소프트웨어 개발 직군' },
+  designer: { label: '디자이너', icon: '🎨', description: 'UI/UX, 그래픽 디자인 직군' },
+  marketer: { label: '마케터', icon: '📢', description: '마케팅, 브랜딩 직군' },
+  planner: { label: '기획자', icon: '📊', description: '서비스/상품 기획 직군' },
+  sales: { label: '영업', icon: '🤝', description: '영업, 세일즈 직군' }
+};
+
 const InterviewChat = () => {
   // 기본 상태
   const [messages, setMessages] = useState([]);
@@ -18,6 +36,10 @@ const InterviewChat = () => {
   const [userName, setUserName] = useState('');
   const [maxQuestions, setMaxQuestions] = useState(10);
   const [isPaused, setIsPaused] = useState(false);
+
+  // 면접 유형 선택 상태
+  const [interviewType, setInterviewType] = useState('personality'); // personality, technical, english, executive
+  const [jobPosition, setJobPosition] = useState('general'); // general, developer, designer, marketer, planner, sales
   
   // 타이머 상태
   const [currentQuestionTime, setCurrentQuestionTime] = useState(0);
@@ -325,7 +347,11 @@ const InterviewChat = () => {
       const response = await fetch('http://localhost:3001/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory })
+        body: JSON.stringify({
+          messages: conversationHistory,
+          interviewType,
+          jobPosition
+        })
       });
       if (!response.ok) throw new Error('서버 오류');
       const data = await response.json();
@@ -339,14 +365,18 @@ const InterviewChat = () => {
     try {
       setIsAnalyzing(true);
       if (isRecording) stopRecording();
-      
+
       const response = await fetch('http://localhost:3001/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory })
+        body: JSON.stringify({
+          messages: conversationHistory,
+          interviewType,
+          jobPosition
+        })
       });
       if (!response.ok) throw new Error('피드백 요청 실패');
-      
+
       const feedbackData = await response.json();
       setFeedback(feedbackData);
       setIsInterviewEnded(true);
@@ -404,8 +434,22 @@ const InterviewChat = () => {
       alert('이름을 입력해주세요.');
       return;
     }
-    
-    const greeting = `안녕하세요 ${userName}님! AI 면접을 시작하겠습니다. 먼저 자기소개 부탁드립니다.`;
+
+    // 면접 유형별 인사말 생성
+    const typeLabel = INTERVIEW_TYPES[interviewType].label;
+    const positionLabel = JOB_POSITIONS[jobPosition].label;
+
+    let greeting = '';
+    if (interviewType === 'english') {
+      greeting = `Hello ${userName}! Welcome to your English interview. I will be conducting this interview in English. Let's start with a brief self-introduction. Please tell me about yourself.`;
+    } else if (interviewType === 'executive') {
+      greeting = `안녕하세요 ${userName}님. ${positionLabel} 직무 임원면접을 시작하겠습니다. 깊이 있는 질문을 드릴 예정이니 신중하게 답변해주시기 바랍니다. 먼저 간단한 자기소개와 함께 지원 동기를 말씀해주세요.`;
+    } else if (interviewType === 'technical') {
+      greeting = `안녕하세요 ${userName}님! ${positionLabel} 직무 기술면접을 시작하겠습니다. 직무 관련 전문 지식과 경험을 중심으로 질문드리겠습니다. 먼저 자기소개와 함께 본인의 기술 스택에 대해 간략히 설명해주세요.`;
+    } else {
+      greeting = `안녕하세요 ${userName}님! ${positionLabel} 직무 ${typeLabel}을 시작하겠습니다. 편하게 답변해주시면 됩니다. 먼저 자기소개 부탁드립니다.`;
+    }
+
     setMessages([{ sender: 'AI', text: greeting, id: 1 }]);
     setIsInterviewStarted(true);
     setCurrentQuestionTime(0);
@@ -442,6 +486,8 @@ const InterviewChat = () => {
     setIsPaused(false);
     setCurrentQuestionTime(0);
     setQuestionTimes([]);
+    setInterviewType('personality');
+    setJobPosition('general');
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
     }
@@ -495,7 +541,41 @@ const InterviewChat = () => {
               />
               <small>면접관이 이름으로 호칭합니다</small>
             </div>
-            
+
+            <div className="form-group">
+              <label>면접 유형 *</label>
+              <div className="option-grid">
+                {Object.entries(INTERVIEW_TYPES).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className={`option-card ${interviewType === key ? 'selected' : ''}`}
+                    onClick={() => setInterviewType(key)}
+                  >
+                    <span className="option-icon">{value.icon}</span>
+                    <span className="option-label">{value.label}</span>
+                    <small className="option-description">{value.description}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>지원 직무 *</label>
+              <div className="option-grid">
+                {Object.entries(JOB_POSITIONS).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className={`option-card ${jobPosition === key ? 'selected' : ''}`}
+                    onClick={() => setJobPosition(key)}
+                  >
+                    <span className="option-icon">{value.icon}</span>
+                    <span className="option-label">{value.label}</span>
+                    <small className="option-description">{value.description}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="form-group">
               <label htmlFor="maxQuestions">질문 개수 *</label>
               <select
@@ -511,15 +591,21 @@ const InterviewChat = () => {
               <small>받고 싶은 질문의 총 개수를 선택하세요</small>
             </div>
           </div>
-          
-          <button 
+
+          <div className="selected-summary">
+            <p>
+              <strong>선택된 면접:</strong> {INTERVIEW_TYPES[interviewType].icon} {INTERVIEW_TYPES[interviewType].label} | {JOB_POSITIONS[jobPosition].icon} {JOB_POSITIONS[jobPosition].label} | {maxQuestions}개 질문
+            </p>
+          </div>
+
+          <button
             onClick={startInterview}
             className="start-button"
             disabled={!userName.trim()}
           >
             면접 시작하기 🚀
           </button>
-          
+
           <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', fontSize: '13px', color: '#666' }}>
             <p style={{ margin: '5px 0' }}>💡 <strong>팁:</strong></p>
             <p style={{ margin: '5px 0' }}>• 조용한 환경에서 진행하세요</p>
@@ -536,7 +622,21 @@ const InterviewChat = () => {
     return (
       <div className="interview-container">
         <h2 className="interview-header">📊 {userName}님의 면접 분석 결과</h2>
-        
+
+        <div className="interview-info-badge">
+          <span className="info-item">
+            {INTERVIEW_TYPES[interviewType].icon} {INTERVIEW_TYPES[interviewType].label}
+          </span>
+          <span className="info-divider">|</span>
+          <span className="info-item">
+            {JOB_POSITIONS[jobPosition].icon} {JOB_POSITIONS[jobPosition].label}
+          </span>
+          <span className="info-divider">|</span>
+          <span className="info-item">
+            📝 {maxQuestions}개 질문
+          </span>
+        </div>
+
         <div className="score-section">
           <div className="score-circle">
             <div className="score-number">{feedback.score}</div>
