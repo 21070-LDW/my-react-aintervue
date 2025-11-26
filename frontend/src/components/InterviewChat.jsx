@@ -35,6 +35,7 @@ const InterviewChat = () => {
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
   const [userName, setUserName] = useState('');
   const [maxQuestions, setMaxQuestions] = useState(10);
+  const [interviewType, setInterviewType] = useState('technical');
   const [isPaused, setIsPaused] = useState(false);
 
   // 면접 유형 선택 상태
@@ -482,6 +483,7 @@ const InterviewChat = () => {
     setUploadStatus('');
     setUserName('');
     setMaxQuestions(10);
+    setInterviewType('technical');
     setIsPaused(false);
     setCurrentQuestionTime(0);
     setQuestionTimes([]);
