@@ -2,6 +2,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../styles/InterviewChat.css';
 
+// 면접 유형 옵션
+const INTERVIEW_TYPES = {
+  personality: { label: '인성면접', icon: '💬', description: '성격, 가치관, 협업 능력 등을 평가합니다' },
+  technical: { label: '기술면접', icon: '💻', description: '직무 관련 전문 지식과 문제 해결 능력을 평가합니다' },
+  english: { label: '영어면접', icon: '🌍', description: '영어 의사소통 능력을 평가합니다' },
+  executive: { label: '임원면접', icon: '👔', description: '리더십, 비전, 조직 적합성을 심층 평가합니다' }
+};
+
+// 직무 옵션
+const JOB_POSITIONS = {
+  general: { label: '일반', icon: '📋', description: '일반적인 면접 질문' },
+  developer: { label: '개발자', icon: '👨‍💻', description: '소프트웨어 개발 직군' },
+  designer: { label: '디자이너', icon: '🎨', description: 'UI/UX, 그래픽 디자인 직군' },
+  marketer: { label: '마케터', icon: '📢', description: '마케팅, 브랜딩 직군' },
+  planner: { label: '기획자', icon: '📊', description: '서비스/상품 기획 직군' },
+  sales: { label: '영업', icon: '🤝', description: '영업, 세일즈 직군' }
+};
+
 const InterviewChat = () => {
   // 기본 상태
   const [messages, setMessages] = useState([]);
@@ -19,6 +37,10 @@ const InterviewChat = () => {
   const [maxQuestions, setMaxQuestions] = useState(10);
   const [interviewType, setInterviewType] = useState('technical');
   const [isPaused, setIsPaused] = useState(false);
+
+  // 면접 유형 선택 상태
+  const [interviewType, setInterviewType] = useState('personality'); // personality, technical, english, executive
+  const [jobPosition, setJobPosition] = useState('general'); // general, developer, designer, marketer, planner, sales
   
   // 타이머 상태
   const [currentQuestionTime, setCurrentQuestionTime] = useState(0);
@@ -262,9 +284,10 @@ const InterviewChat = () => {
   const uploadVideoToServer = async (blob) => {
     try {
       setUploadStatus('업로드 중...');
-      
+
       const formData = new FormData();
-      const filename = `interview_${new Date().toISOString().slice(0, 10)}.webm`;
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `interview_${timestamp}.webm`;
       formData.append('video', blob, filename);
 
       const response = await fetch('http://localhost:3001/api/upload-video', {
@@ -276,16 +299,14 @@ const InterviewChat = () => {
 
       const data = await response.json();
       console.log('✅ 서버에 저장됨:', data.filename);
+      console.log('📁 저장 경로:', data.path);
       setServerVideoUrl(data.url);
-      setUploadStatus('저장 완료!');
-      
-      setTimeout(() => setUploadStatus(''), 3000);
-      
+      setUploadStatus('서버 저장 완료!');
+
       return data;
     } catch (error) {
       console.error('업로드 오류:', error);
-      setUploadStatus('저장 실패');
-      setTimeout(() => setUploadStatus(''), 3000);
+      setUploadStatus('서버 저장 실패 - 로컬 영상은 다운로드 가능');
       return null;
     }
   };
@@ -326,7 +347,11 @@ const InterviewChat = () => {
       const response = await fetch('http://localhost:3001/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory })
+        body: JSON.stringify({
+          messages: conversationHistory,
+          interviewType,
+          jobPosition
+        })
       });
       if (!response.ok) throw new Error('서버 오류');
       const data = await response.json();
@@ -340,14 +365,18 @@ const InterviewChat = () => {
     try {
       setIsAnalyzing(true);
       if (isRecording) stopRecording();
-      
+
       const response = await fetch('http://localhost:3001/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: conversationHistory })
+        body: JSON.stringify({
+          messages: conversationHistory,
+          interviewType,
+          jobPosition
+        })
       });
       if (!response.ok) throw new Error('피드백 요청 실패');
-      
+
       const feedbackData = await response.json();
       setFeedback(feedbackData);
       setIsInterviewEnded(true);
@@ -405,8 +434,22 @@ const InterviewChat = () => {
       alert('이름을 입력해주세요.');
       return;
     }
-    
-    const greeting = `안녕하세요 ${userName}님! AI 면접을 시작하겠습니다. 먼저 자기소개 부탁드립니다.`;
+
+    // 면접 유형별 인사말 생성
+    const typeLabel = INTERVIEW_TYPES[interviewType].label;
+    const positionLabel = JOB_POSITIONS[jobPosition].label;
+
+    let greeting = '';
+    if (interviewType === 'english') {
+      greeting = `Hello ${userName}! Welcome to your English interview. I will be conducting this interview in English. Let's start with a brief self-introduction. Please tell me about yourself.`;
+    } else if (interviewType === 'executive') {
+      greeting = `안녕하세요 ${userName}님. ${positionLabel} 직무 임원면접을 시작하겠습니다. 깊이 있는 질문을 드릴 예정이니 신중하게 답변해주시기 바랍니다. 먼저 간단한 자기소개와 함께 지원 동기를 말씀해주세요.`;
+    } else if (interviewType === 'technical') {
+      greeting = `안녕하세요 ${userName}님! ${positionLabel} 직무 기술면접을 시작하겠습니다. 직무 관련 전문 지식과 경험을 중심으로 질문드리겠습니다. 먼저 자기소개와 함께 본인의 기술 스택에 대해 간략히 설명해주세요.`;
+    } else {
+      greeting = `안녕하세요 ${userName}님! ${positionLabel} 직무 ${typeLabel}을 시작하겠습니다. 편하게 답변해주시면 됩니다. 먼저 자기소개 부탁드립니다.`;
+    }
+
     setMessages([{ sender: 'AI', text: greeting, id: 1 }]);
     setIsInterviewStarted(true);
     setCurrentQuestionTime(0);
@@ -444,6 +487,8 @@ const InterviewChat = () => {
     setIsPaused(false);
     setCurrentQuestionTime(0);
     setQuestionTimes([]);
+    setInterviewType('personality');
+    setJobPosition('general');
     if (timerIntervalRef.current) {
       clearInterval(timerIntervalRef.current);
     }
@@ -500,59 +545,68 @@ const InterviewChat = () => {
 
             <div className="form-group">
               <label>면접 유형 *</label>
-              <div className="interview-type-options">
-                {[
-                  { value: 'technical', label: '기술 면접', desc: '개발 역량 평가', icon: '💻' },
-                  { value: 'behavioral', label: '인성 면접', desc: '성격 및 태도 평가', icon: '🤝' },
-                  { value: 'project', label: '프로젝트 면접', desc: '경험 기반 질문', icon: '📂' },
-                  { value: 'comprehensive', label: '종합 면접', desc: '기술 + 인성', icon: '🎯' }
-                ].map((option) => (
+              <div className="option-grid">
+                {Object.entries(INTERVIEW_TYPES).map(([key, value]) => (
                   <div
-                    key={option.value}
-                    className={`interview-type-card ${interviewType === option.value ? 'selected' : ''}`}
-                    onClick={() => setInterviewType(option.value)}
+                    key={key}
+                    className={`option-card ${interviewType === key ? 'selected' : ''}`}
+                    onClick={() => setInterviewType(key)}
                   >
-                    <span className="option-icon">{option.icon}</span>
-                    <span className="option-label">{option.label}</span>
-                    <span className="option-desc">{option.desc}</span>
+                    <span className="option-icon">{value.icon}</span>
+                    <span className="option-label">{value.label}</span>
+                    <small className="option-description">{value.description}</small>
                   </div>
                 ))}
               </div>
-              <small>원하는 면접 유형을 선택하세요</small>
             </div>
 
             <div className="form-group">
-              <label>질문 개수 *</label>
-              <div className="question-options">
-                {[
-                  { value: 5, label: '5개', desc: '빠른 면접', icon: '⚡' },
-                  { value: 10, label: '10개', desc: '표준 면접', icon: '📝' },
-                  { value: 15, label: '15개', desc: '심화 면접', icon: '📚' },
-                  { value: 20, label: '20개', desc: '전문 면접', icon: '🎯' }
-                ].map((option) => (
+              <label>지원 직무 *</label>
+              <div className="option-grid">
+                {Object.entries(JOB_POSITIONS).map(([key, value]) => (
                   <div
-                    key={option.value}
-                    className={`question-option-card ${maxQuestions === option.value ? 'selected' : ''}`}
-                    onClick={() => setMaxQuestions(option.value)}
+                    key={key}
+                    className={`option-card ${jobPosition === key ? 'selected' : ''}`}
+                    onClick={() => setJobPosition(key)}
                   >
-                    <span className="option-icon">{option.icon}</span>
-                    <span className="option-label">{option.label}</span>
-                    <span className="option-desc">{option.desc}</span>
+                    <span className="option-icon">{value.icon}</span>
+                    <span className="option-label">{value.label}</span>
+                    <small className="option-description">{value.description}</small>
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="maxQuestions">질문 개수 *</label>
+              <select
+                id="maxQuestions"
+                value={maxQuestions}
+                onChange={(e) => setMaxQuestions(Number(e.target.value))}
+              >
+                <option value={5}>5개 (빠른 면접)</option>
+                <option value={10}>10개 (표준 면접)</option>
+                <option value={15}>15개 (심화 면접)</option>
+                <option value={20}>20개 (전문 면접)</option>
+              </select>
               <small>받고 싶은 질문의 총 개수를 선택하세요</small>
             </div>
           </div>
-          
-          <button 
+
+          <div className="selected-summary">
+            <p>
+              <strong>선택된 면접:</strong> {INTERVIEW_TYPES[interviewType].icon} {INTERVIEW_TYPES[interviewType].label} | {JOB_POSITIONS[jobPosition].icon} {JOB_POSITIONS[jobPosition].label} | {maxQuestions}개 질문
+            </p>
+          </div>
+
+          <button
             onClick={startInterview}
             className="start-button"
             disabled={!userName.trim()}
           >
             면접 시작하기 🚀
           </button>
-          
+
           <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px', fontSize: '13px', color: '#666' }}>
             <p style={{ margin: '5px 0' }}>💡 <strong>팁:</strong></p>
             <p style={{ margin: '5px 0' }}>• 조용한 환경에서 진행하세요</p>
@@ -569,7 +623,21 @@ const InterviewChat = () => {
     return (
       <div className="interview-container">
         <h2 className="interview-header">📊 {userName}님의 면접 분석 결과</h2>
-        
+
+        <div className="interview-info-badge">
+          <span className="info-item">
+            {INTERVIEW_TYPES[interviewType].icon} {INTERVIEW_TYPES[interviewType].label}
+          </span>
+          <span className="info-divider">|</span>
+          <span className="info-item">
+            {JOB_POSITIONS[jobPosition].icon} {JOB_POSITIONS[jobPosition].label}
+          </span>
+          <span className="info-divider">|</span>
+          <span className="info-item">
+            📝 {maxQuestions}개 질문
+          </span>
+        </div>
+
         <div className="score-section">
           <div className="score-circle">
             <div className="score-number">{feedback.score}</div>
@@ -631,31 +699,45 @@ const InterviewChat = () => {
           </div>
         </div>
 
-        {recordedVideoUrl && (
-          <div className="feedback-section">
-            <h3 className="section-title">🎥 면접 녹화 영상</h3>
-            <video src={recordedVideoUrl} controls className="recorded-video" />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={downloadRecording} className="download-button">
-                📥 로컬 다운로드
-              </button>
-              {serverVideoUrl && (
-                <button 
-                  onClick={() => window.open(serverVideoUrl, '_blank')} 
-                  className="download-button"
-                  style={{ backgroundColor: '#28a745' }}
-                >
-                  🌐 서버에서 보기
+        <div className="feedback-section">
+          <h3 className="section-title">🎥 면접 녹화 영상</h3>
+          {recordedVideoUrl ? (
+            <div className="video-section">
+              <video src={recordedVideoUrl} controls className="recorded-video" />
+              <div className="video-info">
+                {uploadStatus && (
+                  <div className={`upload-status-badge ${uploadStatus.includes('완료') ? 'success' : uploadStatus.includes('실패') ? 'error' : 'loading'}`}>
+                    {uploadStatus.includes('완료') ? '✅' : uploadStatus.includes('실패') ? '❌' : '⏳'} {uploadStatus}
+                  </div>
+                )}
+                {serverVideoUrl && (
+                  <p className="server-path">
+                    📁 서버 저장 경로: <code>{serverVideoUrl.split('/').pop()}</code>
+                  </p>
+                )}
+              </div>
+              <div className="video-buttons">
+                <button onClick={downloadRecording} className="download-button">
+                  📥 로컬 다운로드
                 </button>
-              )}
+                {serverVideoUrl && (
+                  <button
+                    onClick={() => window.open(serverVideoUrl, '_blank')}
+                    className="download-button server"
+                  >
+                    🌐 서버에서 보기
+                  </button>
+                )}
+              </div>
             </div>
-            {serverVideoUrl && (
-              <p style={{ marginTop: '10px', fontSize: '14px', color: '#666' }}>
-                ✅ 서버에 저장됨: {serverVideoUrl.split('/').pop()}
-              </p>
-            )}
-          </div>
-        )}
+          ) : (
+            <div className="no-video-message">
+              <div className="no-video-icon">📹</div>
+              <p>녹화된 영상이 없습니다</p>
+              <small>다음 면접에서는 웹캠을 켜고 🔴 녹화 버튼을 눌러 면접 영상을 저장해보세요!</small>
+            </div>
+          )}
+        </div>
 
         <button onClick={restartInterview} className="restart-button">
           🔄 새로운 면접 시작하기
